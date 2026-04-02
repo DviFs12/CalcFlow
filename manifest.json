@@ -1,0 +1,48 @@
+{
+  "name": "CalcFlow — Calculadora Reativa",
+  "short_name": "CalcFlow",
+  "description": "Calculadora com abas interdependentes e cálculo reativo em tempo real",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "lang": "pt-BR",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova Aba",
+      "short_name": "Nova Aba",
+      "description": "Abrir o CalcFlow com uma nova aba",
+      "url": "./index.html?new=1",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
