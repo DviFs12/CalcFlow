@@ -26,6 +26,9 @@
   /** Teclado nativo travado por aba: true = somente teclado virtual */
   const keyboardLocked = {};
 
+  /** Lock global (aplica a todas as abas) */
+  let globalKeyboardLocked = false;
+
   // Histórico em memória: id → [{expr,result,ts}]
   const historyCache = {};
 
@@ -41,6 +44,9 @@
     // Carrega tema
     const savedTheme = localStorage.getItem('calcflow_theme') || 'dark';
     document.documentElement.dataset.theme = savedTheme;
+
+    // Restaura lock global
+    globalKeyboardLocked = localStorage.getItem('calcflow_global_lock') === '1';
 
     // Carrega abas do IndexedDB
     const savedTabs = await DB.getAllTabs().catch(() => []);
@@ -75,12 +81,15 @@
     // Renderiza UI
     renderAllTabs();
     switchToTab(tabOrder[0]);
+    UI.showKeypad(tabOrder[0]);
 
     // Avalia todas as abas
     evaluateAll();
 
     // Carrega conversões personalizadas
     await CONVERTER.loadCustom();
+
+    if (globalKeyboardLocked) _applyGlobalLock(true);
 
     // Registra eventos globais
     bindGlobalEvents();
@@ -144,8 +153,10 @@
     // Atualiza histórico
     UI.renderHistory(id, historyCache[id] || []);
 
-    // Foca na expressão
-    setTimeout(() => document.getElementById(`expr-input-${id}`)?.focus(), 50);
+    // Foca na expressão apenas se teclado não travado
+    if (!keyboardLocked[id]) {
+      setTimeout(() => document.getElementById(`expr-input-${id}`)?.focus(), 50);
+    }
   }
 
   // ── Criação de aba ────────────────────────────────────────
@@ -173,6 +184,12 @@
     main.appendChild(panel);
 
     switchToTab(id);
+    UI.showKeypad(id);
+    if (globalKeyboardLocked) {
+      keyboardLocked[id] = true;
+      _applyKeyboardLock(id);
+      UI.setKeyboardLock(id, true);
+    }
     UI.toast(`Aba "${name}" criada`, 'success');
   }
 
@@ -498,6 +515,18 @@
     }
   }
 
+  function _applyGlobalLock(locked) {
+    globalKeyboardLocked = locked;
+    localStorage.setItem('calcflow_global_lock', locked ? '1' : '0');
+    tabOrder.forEach(id => {
+      keyboardLocked[id] = locked;
+      _applyKeyboardLock(id);
+      UI.setKeyboardLock(id, locked);
+    });
+    UI.setGlobalLockVisual(locked);
+    if (locked && activeTabId) UI.showKeypad(activeTabId);
+  }
+
   function _focusLockedTextarea(e) {
     // Foca sem abrir teclado nativo (inputmode=none já está ativo)
     e.preventDefault();
@@ -757,9 +786,8 @@
           textarea.blur();
           return;
         }
-        if (window.innerWidth < 700) {
-          UI.showKeypad(id);
-        }
+        // Mostra teclado virtual em todos os dispositivos
+        UI.showKeypad(id);
       });
     }
 
@@ -801,7 +829,6 @@
     // ── Handler unificado para teclado base + expandido ──────
     function _handleKeyClick(val, ta) {
       if (!ta) return;
-      if (val === 'NOOP') return;
       if (val === 'LOCK') {
         keyboardLocked[id] = !keyboardLocked[id];
         UI.setKeyboardLock(id, keyboardLocked[id]);
@@ -814,6 +841,24 @@
       }
       if (val === 'CONV') {
         openConverterModal(id);
+        return;
+      }
+      if (val === 'TAB_SELECT') {
+        const keyBtn = document.querySelector('#keypad-' + id + ' [data-val="TAB_SELECT"]');
+        const tabList = tabOrder.map(function(tid) {
+          return { id: tid, name: tabs[tid].name, result: tabs[tid].result, error: tabs[tid].error };
+        });
+        UI.showTabSelectPopup(keyBtn, tabList, id, function(name) {
+          const ta = document.getElementById('expr-input-' + id);
+          if (!ta) return;
+          const start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+          const end   = ta.selectionEnd   != null ? ta.selectionEnd   : ta.value.length;
+          ta.value = ta.value.slice(0, start) + name + ta.value.slice(end);
+          ta.setSelectionRange(start + name.length, start + name.length);
+          tabs[id].expr = ta.value;
+          if (evalMode[id] === 'auto') updateExpr(id, ta.value);
+          ta.focus();
+        });
         return;
       }
       if (val === 'DEL') {
@@ -1002,6 +1047,15 @@
         UI.toast(`Erro ao importar: ${err.message}`, 'error');
       }
       e.target.value = '';
+    });
+
+    // Lock global de teclado
+    document.getElementById('btn-global-lock')?.addEventListener('click', () => {
+      _applyGlobalLock(!globalKeyboardLocked);
+      UI.toast(
+        globalKeyboardLocked ? '🔒 Teclado travado em todas as abas' : '🔓 Teclado liberado',
+        'info', 2000
+      );
     });
 
     // Modal de conversão — fechar

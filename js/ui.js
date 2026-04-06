@@ -32,7 +32,7 @@ const UI = (() => {
     { label: '🔒',  val: 'LOCK',  cls: 'key-lock', title: 'Travar teclado nativo' },
     { label: '⇄',   val: 'CONV',  cls: 'key-conv', title: 'Converter unidades' },
     { label: 'f(x)', val: 'EXPAND', cls: 'key-expand', title: 'Mais operações' },
-    { label: ' ',   val: 'NOOP',  cls: 'key-spacer', title: '' },
+    { label: '⊞ aba', val: 'TAB_SELECT', cls: 'key-tab-select', title: 'Inserir valor de outra aba' },
     { label: '=',   val: 'EVAL',  cls: 'key-eq' },
   ];
 
@@ -387,12 +387,89 @@ const UI = (() => {
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
+  // ── Global lock visual ───────────────────────────────────
+
+  function setGlobalLockVisual(locked) {
+    const btn = document.getElementById('btn-global-lock');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', String(locked));
+    btn.classList.toggle('active', locked);
+    btn.querySelector('.lock-icon-open').style.display  = locked ? 'none' : '';
+    btn.querySelector('.lock-icon-closed').style.display = locked ? '' : 'none';
+    btn.title = locked ? 'Destavar teclado (todas as abas)' : 'Travar teclado (todas as abas)';
+  }
+
+  // ── Tab Select Popup ──────────────────────────────────────
+
+  /**
+   * Exibe um popup inline com lista de abas para inserir referência.
+   * anchorEl: botão que disparou; tabs: [{ id, name, result }]; onSelect: fn(name)
+   */
+  function showTabSelectPopup(anchorEl, tabList, currentTabId, onSelect) {
+    // Remove popup anterior se existir
+    document.getElementById('tab-select-popup')?.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'tab-select-popup';
+    popup.className = 'tab-select-popup';
+    popup.setAttribute('role', 'listbox');
+    popup.setAttribute('aria-label', 'Selecionar aba');
+
+    const others = tabList.filter(t => t.id !== currentTabId);
+    if (!others.length) {
+      popup.innerHTML = '<div class="tab-select-empty">Nenhuma outra aba</div>';
+    } else {
+      popup.innerHTML = others.map(t => {
+        const val = (t.result !== null && t.result !== undefined)
+          ? ENGINE.formatResult(t.result) : (t.error ? '⚠' : '—');
+        return `<button class="tab-select-item" data-name="${_escape(t.name)}" role="option">
+          <span class="tab-select-name">${_escape(t.name)}</span>
+          <span class="tab-select-val">${_escape(String(val))}</span>
+        </button>`;
+      }).join('');
+    }
+
+    // Position below anchor
+    document.body.appendChild(popup);
+    const rect = anchorEl.getBoundingClientRect();
+    const popW = 180;
+    let left = rect.left + rect.width / 2 - popW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - popW - 8));
+    popup.style.left   = `${left}px`;
+    popup.style.top    = `${rect.top - popup.offsetHeight - 6}px`;
+    // Re-position after paint so height is known
+    requestAnimationFrame(() => {
+      popup.style.top = `${rect.top - popup.offsetHeight - 6}px`;
+    });
+
+    popup.querySelectorAll('.tab-select-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        onSelect(btn.dataset.name);
+        popup.remove();
+      });
+    });
+
+    // Close on outside click
+    const dismiss = (e) => {
+      if (!popup.contains(e.target) && e.target !== anchorEl) {
+        popup.remove();
+        document.removeEventListener('click', dismiss, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', dismiss, true), 0);
+  }
+
+  function hideTabSelectPopup() {
+    document.getElementById('tab-select-popup')?.remove();
+  }
+
   return {
     createTabPanel, createTabItem,
     updateResult, updateDepsPanel, renderHistory,
     showKeypad, hideKeypad, toggleKeypad,
     showExpandedKeypad, hideExpandedKeypad, toggleExpandedKeypad,
-    setKeyboardLock,
+    setKeyboardLock, setGlobalLockVisual,
+    showTabSelectPopup, hideTabSelectPopup,
     toast,
     showAutocomplete, hideAutocomplete, acNavigate, acConfirm, isAcVisible,
     KEYPAD_BASE, KEYPAD_EXPANDED,
