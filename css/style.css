@@ -550,3 +550,291 @@ svg { display: block; }
   animation: spin 0.7s linear infinite;
   display: inline-block;
 }
+
+/* ============================================================
+   ADIÇÕES v3 — Keypad expandido, Lock, Converter
+   ============================================================ */
+
+/* ── Keypad base ajustes (5 colunas fixas) ───────────────── */
+.keypad-base {
+  grid-template-columns: repeat(5, 1fr) !important;
+}
+
+/* Botões especiais na linha de controle */
+.key-lock   { color: var(--warn);    font-size: 1rem; }
+.key-conv   { color: var(--accent2); font-size: 0.85rem; letter-spacing: -0.02em; }
+.key-expand { color: var(--accent);  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; }
+.key-spacer { opacity: 0; pointer-events: none; }
+
+.key.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 10px var(--accent-glow);
+  border-color: transparent;
+}
+.key-lock.active  { background: var(--warn);   color: #000; box-shadow: 0 0 10px rgba(255,179,64,.4); }
+.key-conv.active  { background: var(--accent2); color: #000; }
+
+/* ── Keypad expandido ────────────────────────────────────── */
+.keypad-expanded {
+  display: none;
+  flex-direction: column;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 6px;
+  animation: fadeSlide 0.18s ease;
+}
+.keypad-expanded.open { display: flex; }
+
+.keypad-expanded-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.expanded-title {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent);
+}
+.btn-expanded-close {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; color: var(--text3); font-size: 14px;
+  transition: background 0.1s, color 0.1s;
+}
+.btn-expanded-close:hover { background: var(--error); color: #fff; }
+
+/* Grid 4 colunas para teclado expandido */
+.keypad-ext {
+  grid-template-columns: repeat(4, 1fr) !important;
+  padding: 8px;
+  gap: 5px;
+}
+.keypad-ext .key {
+  height: 40px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.key-const {
+  background: rgba(61,232,196,0.08);
+  border-color: rgba(61,232,196,0.2);
+}
+
+/* Mobile: expanded em 4 col também */
+@media (max-width: 480px) {
+  .keypad-ext { grid-template-columns: repeat(4, 1fr) !important; }
+  .keypad-ext .key { height: 38px; font-size: 0.68rem; }
+}
+
+/* ── Modal de Conversão ──────────────────────────────────── */
+.conv-modal-overlay {
+  position: fixed; inset: 0; z-index: 800;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.conv-modal-overlay.open {
+  opacity: 1; pointer-events: all;
+}
+.conv-modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius) var(--radius) 0 0;
+  width: 100%; max-width: 560px;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  transform: translateY(32px);
+  transition: transform 0.25s cubic-bezier(0.34,1.4,0.64,1);
+  overflow: hidden;
+}
+.conv-modal-overlay.open .conv-modal-box { transform: translateY(0); }
+
+.conv-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+  flex-shrink: 0;
+}
+.conv-modal-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.9rem; font-weight: 700; color: var(--text);
+}
+.conv-modal-close {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; color: var(--text3); font-size: 16px;
+  transition: background 0.1s, color 0.1s;
+}
+.conv-modal-close:hover { background: var(--error); color: #fff; }
+
+.conv-modal-body {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 12px;
+  position: relative;
+}
+
+/* ── Lista de categorias ─────────────────────────────────── */
+.conv-cat-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  transition: opacity 0.15s;
+}
+.conv-cat-list.hidden { display: none; }
+
+.conv-cat-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.8rem; font-weight: 600;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.conv-cat-btn:hover { border-color: var(--accent); background: var(--bg4); }
+.conv-cat-icon { font-size: 1.4rem; line-height: 1; }
+.conv-badge-custom {
+  font-size: 0.6rem; padding: 1px 5px;
+  background: rgba(124,106,245,0.2); color: var(--accent);
+  border-radius: 10px; border: 1px solid rgba(124,106,245,0.3);
+}
+.conv-cat-add {
+  border-style: dashed; color: var(--text3);
+}
+.conv-cat-add:hover { color: var(--accent2); border-color: var(--accent2); }
+
+/* ── Painel de conversão ─────────────────────────────────── */
+.conv-panel {
+  display: none; flex-direction: column; gap: 12px;
+  animation: fadeSlide 0.15s ease;
+}
+.conv-panel.visible { display: flex; }
+
+.conv-panel-header {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.conv-back-btn {
+  color: var(--accent); font-size: 0.82rem; font-weight: 600;
+  padding: 4px 8px; border-radius: 4px;
+  transition: background 0.1s;
+}
+.conv-back-btn:hover { background: var(--bg4); }
+.conv-panel-title { font-size: 0.9rem; font-weight: 700; flex: 1; }
+.conv-delete-cat {
+  color: var(--error); font-size: 0.9rem; padding: 4px 6px;
+  border-radius: 4px; transition: background 0.1s;
+}
+.conv-delete-cat:hover { background: rgba(255,77,106,0.12); }
+
+.conv-inputs { display: flex; flex-direction: column; gap: 4px; }
+.conv-row {
+  display: flex; gap: 8px;
+}
+.conv-value-input {
+  flex: 1; min-width: 0;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text); font-family: var(--font-mono); font-size: 1rem;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.conv-value-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.conv-value-result { color: var(--accent2); background: var(--bg4); cursor: default; }
+.conv-select {
+  flex: 1; min-width: 0;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text); font-family: var(--font-ui); font-size: 0.82rem;
+  padding: 10px 8px;
+  outline: none; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.conv-select:focus { border-color: var(--accent); }
+.conv-swap-row { display: flex; justify-content: center; }
+.conv-swap-btn {
+  padding: 4px 16px; border-radius: var(--radius-sm);
+  background: var(--bg4); color: var(--text2); font-size: 1rem;
+  border: 1px solid var(--border);
+  transition: background 0.1s, color 0.1s;
+}
+.conv-swap-btn:hover { background: var(--accent); color: #fff; border-color: transparent; }
+
+.conv-actions { padding-top: 4px; }
+.btn-conv-use {
+  width: 100%; padding: 11px;
+  background: var(--accent); color: #fff;
+  border-radius: var(--radius-sm); font-weight: 700; font-size: 0.88rem;
+  box-shadow: 0 2px 12px var(--accent-glow);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.btn-conv-use:hover { background: #9480ff; box-shadow: 0 4px 20px var(--accent-glow); }
+
+/* ── Formulário de categoria personalizada ───────────────── */
+.cust-form { display: flex; flex-direction: column; gap: 8px; }
+.cust-label {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text3); margin-top: 4px;
+}
+.cust-input {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text); font-family: var(--font-mono); font-size: 0.9rem;
+  padding: 9px 12px; outline: none;
+  transition: border-color 0.15s;
+}
+.cust-input:focus { border-color: var(--accent); }
+.cust-unit-row {
+  display: flex; gap: 6px; align-items: center;
+}
+.cust-unit-row .cust-input { flex: 1; }
+.cust-unit-row .cust-unit-factor { width: 90px; flex: none; }
+.cust-unit-remove {
+  width: 28px; height: 28px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; color: var(--text3); font-size: 13px;
+  transition: background 0.1s, color 0.1s;
+}
+.cust-unit-remove:hover { background: var(--error); color: #fff; }
+.btn-cust-add-unit {
+  padding: 8px; border-radius: var(--radius-sm);
+  border: 1px dashed var(--border2); color: var(--accent2);
+  font-size: 0.82rem; font-weight: 600;
+  transition: background 0.1s, border-color 0.1s;
+}
+.btn-cust-add-unit:hover { background: var(--bg4); border-color: var(--accent2); }
+.cust-hint {
+  font-size: 0.72rem; color: var(--text3); line-height: 1.5;
+  padding: 6px 10px;
+  background: var(--bg4); border-radius: 4px;
+  border-left: 2px solid var(--accent2);
+}
+.btn-cust-save {
+  padding: 11px; background: var(--accent2); color: #000;
+  border-radius: var(--radius-sm); font-weight: 700; font-size: 0.88rem;
+  transition: opacity 0.15s;
+}
+.btn-cust-save:hover { opacity: 0.85; }
+
+/* ── Desktop: modal como sheet central ───────────────────── */
+@media (min-width: 600px) {
+  .conv-modal-overlay { align-items: center; }
+  .conv-modal-box {
+    border-radius: var(--radius);
+    max-height: 80vh;
+    width: 520px;
+    transform: scale(0.95) translateY(0);
+  }
+  .conv-modal-overlay.open .conv-modal-box { transform: scale(1); }
+}
